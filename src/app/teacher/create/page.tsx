@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useProgram, getEventPDA } from "@/lib/program";
+import TeacherNav from "../TeacherNav";
 
 export default function CreateEvent() {
   const router = useRouter();
@@ -48,10 +49,13 @@ export default function CreateEvent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        <h1 className="text-2xl font-bold text-center">Create Event</h1>
+  <div className="min-h-screen bg-white">
+    <TeacherNav />
 
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">Create Event</h1>
+
+      <div className="w-full max-w-md space-y-6">
         <div className="flex justify-center">
           <WalletMultiButton />
         </div>
@@ -106,7 +110,14 @@ export default function CreateEvent() {
             </p>
           </div>
         )}
+
+        {!publicKey && (
+          <p className="text-center text-gray-600">
+            Connect your wallet to create an event.
+          </p>
+        )}
       </div>
     </div>
-  );
+  </div>
+);
 }

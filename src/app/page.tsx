@@ -9,7 +9,7 @@ export default function Home() {
 
         <div className="flex flex-col gap-4">
           <Link
-            href="/teacher/create"
+            href="/teacher/main"
             className="px-8 py-4 bg-blue-600 text-white rounded-lg text-lg hover:bg-blue-700"
           >
             I'm a Teacher
