@@ -65,7 +65,16 @@
           "address": "11111111111111111111111111111111"
         }
       ],
-      "args": []
+      "args": [
+        {
+          "name": "first_name",
+          "type": "string"
+        },
+        {
+          "name": "last_name",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "create_event",
@@ -175,6 +184,16 @@
       "code": 6002,
       "name": "NameTooLong",
       "msg": "Event name must be 64 characters or less"
+    },
+    {
+      "code": 6003,
+      "name": "FirstNameTooLong",
+      "msg": "First name must be 32 characters or less"
+    },
+    {
+      "code": 6004,
+      "name": "LastNameTooLong",
+      "msg": "Last name must be 32 characters or less"
     }
   ],
   "types": [
@@ -190,6 +209,14 @@
           {
             "name": "attendee",
             "type": "pubkey"
+          },
+          {
+            "name": "first_name",
+            "type": "string"
+          },
+          {
+            "name": "last_name",
+            "type": "string"
           },
           {
             "name": "timestamp",

@@ -15,6 +15,8 @@ export default function StudentPageClient() {
 
   const { publicKey } = useWallet();
   const program = useProgram();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
@@ -26,10 +28,20 @@ export default function StudentPageClient() {
     setError("");
 
     try {
+      if (!firstName.trim() || !lastName.trim()) {
+  setStatus("error");
+  setError("Please enter your first and last name.");
+  return;
+}
+if (firstName.length > 32 || lastName.length > 32) {
+  setStatus("error");
+  setError("First name and last name must be 32 characters or less.");
+  return;
+}
       const eventPDA = new PublicKey(eventParam);
 
       await program.methods
-        .checkIn()
+        .checkIn(firstName.trim(), lastName.trim())
         .accounts({
           attendee: publicKey,
           event: eventPDA,
@@ -80,6 +92,31 @@ export default function StudentPageClient() {
         {/* Idle - Ready to check in */}
         {publicKey && status === "idle" && (
           <div className="space-y-4">
+            <div className="space-y-3 text-left">
+  <div>
+    <label className="block text-sm font-medium mb-1">First name</label>
+    <input
+      value={firstName}
+      onChange={(e) => setFirstName(e.target.value)}
+      maxLength={32}
+      className="w-full p-3 border rounded"
+      placeholder="e.g., Aldin"
+    />
+    <p className="text-xs text-gray-500 mt-1">{firstName.length}/32</p>
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium mb-1">Last name</label>
+    <input
+      value={lastName}
+      onChange={(e) => setLastName(e.target.value)}
+      maxLength={32}
+      className="w-full p-3 border rounded"
+      placeholder="e.g., Mekić"
+    />
+    <p className="text-xs text-gray-500 mt-1">{lastName.length}/32</p>
+  </div>
+</div>
             <button
               onClick={handleCheckIn}
               className="w-full p-4 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700"

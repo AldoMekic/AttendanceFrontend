@@ -9,6 +9,8 @@ import { useProgram, PROGRAM_ID } from "@/lib/program";
 
 interface AttendeeInfo {
   wallet: string;
+  firstName: string;
+  lastName: string;
   timestamp: number;
 }
 
@@ -57,18 +59,22 @@ export default function EventPage() {
 
       // Fetch all attendance accounts filtered by this event
       const accounts = await (program as any).account.attendance.all([
+  { dataSize: 153 },
   {
     memcmp: {
-      offset: 8, // After discriminator
+      offset: 8,
       bytes: eventPubkey.toBase58(),
     },
   },
 ]);
 
-      const attendeeList: AttendeeInfo[] = accounts.map((acc: { account: { attendee: { toString: () => any; }; timestamp: { toNumber: () => number; }; }; }) => ({
-        wallet: acc.account.attendee.toString(),
-        timestamp: acc.account.timestamp.toNumber() * 1000,
-      }));
+      const attendeeList: AttendeeInfo[] = accounts.map((acc: any) => ({
+  wallet: acc.account.attendee.toString(),
+  firstName: acc.account.firstName ?? "",
+  lastName: acc.account.lastName ?? "",
+  timestamp: acc.account.timestamp.toNumber() * 1000,
+}));
+
 
       // Sort by timestamp (most recent first)
       attendeeList.sort((a, b) => b.timestamp - a.timestamp);
@@ -142,17 +148,23 @@ export default function EventPage() {
           ) : (
             <ul className="space-y-2 max-h-64 overflow-y-auto">
               {attendees.map((a, i) => (
-                <li
-                  key={a.wallet}
-                  className="flex justify-between items-center py-2 border-b last:border-0"
-                >
-                  <span className="font-mono text-sm">
-                    {a.wallet.slice(0, 4)}...{a.wallet.slice(-4)}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {new Date(a.timestamp).toLocaleTimeString()}
-                  </span>
-                </li>
+               <li
+  key={a.wallet}
+  className="flex justify-between items-center py-2 border-b last:border-0"
+>
+  <div className="flex flex-col">
+    <span className="font-medium text-sm">
+      {a.firstName} {a.lastName}
+    </span>
+    <span className="font-mono text-xs text-gray-500">
+      {a.wallet.slice(0, 4)}...{a.wallet.slice(-4)}
+    </span>
+  </div>
+
+  <span className="text-xs text-gray-500">
+    {new Date(a.timestamp).toLocaleTimeString()}
+  </span>
+</li>
               ))}
             </ul>
           )}
