@@ -6,6 +6,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey } from "@solana/web3.js";
 import { useProgram } from "@/lib/program";
+import { mintProofCnft } from "@/lib/cnft";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -13,7 +14,8 @@ export default function StudentPageClient() {
   const searchParams = useSearchParams();
   const eventParam = searchParams.get("event");
 
-  const { publicKey } = useWallet();
+  const wallet = useWallet();
+  const { publicKey } = wallet;
   const program = useProgram();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -48,6 +50,16 @@ if (firstName.length > 32 || lastName.length > 32) {
         })
         .rpc();
 
+        try {
+          await mintProofCnft({
+          wallet,
+          leafOwner: publicKey,
+          classOrEventPda: eventPDA,
+        });
+        } catch (e) {
+          console.warn("Mint failed, but check-in succeeded:", e);
+        }
+
       setStatus("success");
     } catch (e: any) {
       console.error(e);
@@ -66,7 +78,6 @@ if (firstName.length > 32 || lastName.length > 32) {
     }
   };
 
-  // No event parameter
   if (!eventParam) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -89,7 +100,6 @@ if (firstName.length > 32 || lastName.length > 32) {
           <WalletMultiButton />
         </div>
 
-        {/* Idle - Ready to check in */}
         {publicKey && status === "idle" && (
           <div className="space-y-4">
             <div className="space-y-3 text-left">
@@ -129,7 +139,6 @@ if (firstName.length > 32 || lastName.length > 32) {
           </div>
         )}
 
-        {/* Loading */}
         {status === "loading" && (
           <div className="p-8 bg-gray-50 rounded-lg">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
@@ -137,7 +146,6 @@ if (firstName.length > 32 || lastName.length > 32) {
           </div>
         )}
 
-        {/* Success */}
         {status === "success" && (
           <div className="p-8 bg-green-50 rounded-lg">
             <div className="text-5xl mb-4">✅</div>
@@ -150,7 +158,6 @@ if (firstName.length > 32 || lastName.length > 32) {
           </div>
         )}
 
-        {/* Error */}
         {status === "error" && (
           <div className="p-8 bg-red-50 rounded-lg">
             <div className="text-5xl mb-4">❌</div>
@@ -167,7 +174,6 @@ if (firstName.length > 32 || lastName.length > 32) {
           </div>
         )}
 
-        {/* Not connected */}
         {!publicKey && (
           <p className="text-gray-500">Connect your wallet to check in</p>
         )}
