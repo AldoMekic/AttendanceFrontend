@@ -1,7 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+
+function NavLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  const pathname = usePathname();
+  const active = pathname === href || pathname.startsWith(href + "/");
+
+  return (
+    <Link
+      href={href}
+      className={[
+        "px-3 py-2 rounded text-sm",
+        active ? "bg-gray-200 font-medium" : "hover:bg-gray-100",
+      ].join(" ")}
+    >
+      {label}
+    </Link>
+  );
+}
 
 export default function TeacherNav() {
   return (
@@ -12,19 +36,12 @@ export default function TeacherNav() {
             Attendance
           </Link>
 
-          <nav className="flex items-center gap-3 text-sm">
-            <Link
-              href="/teacher/main"
-              className="px-3 py-2 rounded hover:bg-gray-100"
-            >
-              My Events
-            </Link>
-            <Link
-              href="/teacher/create"
-              className="px-3 py-2 rounded hover:bg-gray-100"
-            >
-              Create Event
-            </Link>
+          <nav className="flex items-center gap-2">
+            <NavLink href="/teacher/main" label="My Events" />
+            <NavLink href="/teacher/create" label="Create Event" />
+
+            <NavLink href="/teacher/classes" label="My Classes" />
+            <NavLink href="/teacher/classes/create" label="Create Class" />
           </nav>
         </div>
 

@@ -13,72 +13,111 @@ type Status = "idle" | "loading" | "success" | "error";
 export default function StudentPageClient() {
   const searchParams = useSearchParams();
   const eventParam = searchParams.get("event");
+  const classParam = searchParams.get("class");
+  const sessionParam = searchParams.get("session");
 
   const wallet = useWallet();
   const { publicKey } = wallet;
   const program = useProgram();
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
 
   const handleCheckIn = async () => {
-    if (!program || !publicKey || !eventParam) return;
+    if (!program || !publicKey) return;
 
     setStatus("loading");
     setError("");
 
-    try {
-      if (!firstName.trim() || !lastName.trim()) {
-  setStatus("error");
-  setError("Please enter your first and last name.");
-  return;
-}
-if (firstName.length > 32 || lastName.length > 32) {
-  setStatus("error");
-  setError("First name and last name must be 32 characters or less.");
-  return;
-}
-      const eventPDA = new PublicKey(eventParam);
+    if (!firstName.trim() || !lastName.trim()) {
+      setStatus("error");
+      setError("Please enter your first and last name.");
+      return;
+    }
 
-      await program.methods
-        .checkIn(firstName.trim(), lastName.trim())
-        .accounts({
-          attendee: publicKey,
-          event: eventPDA,
-        })
-        .rpc();
+    if (firstName.length > 32 || lastName.length > 32) {
+      setStatus("error");
+      setError("First name and last name must be 32 characters or less.");
+      return;
+    }
+
+    try {
+      if (eventParam) {
+        const eventPDA = new PublicKey(eventParam);
+
+        await program.methods
+          .checkIn(firstName.trim(), lastName.trim())
+          .accounts({
+            attendee: publicKey,
+            event: eventPDA,
+          })
+          .rpc();
+
+        setStatus("success");
 
         try {
           await mintProofCnft({
-          wallet,
-          leafOwner: publicKey,
-          classOrEventPda: eventPDA,
-        });
+            wallet,
+            leafOwner: publicKey,
+            classOrEventPda: eventPDA,
+          });
         } catch (e) {
           console.warn("Mint failed, but check-in succeeded:", e);
         }
 
-      setStatus("success");
+        return;
+      }
+
+      if (classParam && sessionParam) {
+        const classPDA = new PublicKey(classParam);
+        const session = Number(sessionParam);
+
+        await (program as any).methods
+          .checkInSession(session, firstName.trim(), lastName.trim())
+          .accounts({
+            student: publicKey,
+            class: classPDA,
+          })
+          .rpc();
+
+        setStatus("success");
+
+        try {
+          await mintProofCnft({
+            wallet,
+            leafOwner: publicKey,
+            classOrEventPda: classPDA,
+          });
+        } catch (e) {
+          console.warn("Mint failed, but check-in succeeded:", e);
+        }
+
+        return;
+      }
+
+      setStatus("error");
+      setError("Invalid check-in link. Missing event or class/session.");
     } catch (e: any) {
       console.error(e);
       setStatus("error");
 
-      const msg = e.message || "";
+      const msg = e?.message ?? "";
+
       if (msg.includes("already in use") || msg.includes("0x0")) {
-        setError("You've already checked in to this event!");
+        setError("You've already checked in!");
       } else if (msg.includes("EventEnded")) {
-        setError("This event has ended.");
+        setError("This event or session has ended.");
       } else if (msg.includes("insufficient")) {
-        setError("Insufficient SOL. You need ~0.002 SOL for the check-in fee.");
+        setError("Insufficient SOL for transaction fees.");
       } else {
         setError("Check-in failed. Please try again.");
       }
     }
   };
 
-  if (!eventParam) {
+  if (!eventParam && !(classParam && sessionParam)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
@@ -103,39 +142,37 @@ if (firstName.length > 32 || lastName.length > 32) {
         {publicKey && status === "idle" && (
           <div className="space-y-4">
             <div className="space-y-3 text-left">
-  <div>
-    <label className="block text-sm font-medium mb-1">First name</label>
-    <input
-      value={firstName}
-      onChange={(e) => setFirstName(e.target.value)}
-      maxLength={32}
-      className="w-full p-3 border rounded"
-      placeholder="e.g., Aldin"
-    />
-    <p className="text-xs text-gray-500 mt-1">{firstName.length}/32</p>
-  </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  First name
+                </label>
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  maxLength={32}
+                  className="w-full p-3 border rounded"
+                />
+              </div>
 
-  <div>
-    <label className="block text-sm font-medium mb-1">Last name</label>
-    <input
-      value={lastName}
-      onChange={(e) => setLastName(e.target.value)}
-      maxLength={32}
-      className="w-full p-3 border rounded"
-      placeholder="e.g., Mekić"
-    />
-    <p className="text-xs text-gray-500 mt-1">{lastName.length}/32</p>
-  </div>
-</div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Last name
+                </label>
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  maxLength={32}
+                  className="w-full p-3 border rounded"
+                />
+              </div>
+            </div>
+
             <button
               onClick={handleCheckIn}
               className="w-full p-4 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700"
             >
               Check In Now
             </button>
-            <p className="text-xs text-gray-500">
-              This will cost ~0.0015 SOL for the attendance record
-            </p>
           </div>
         )}
 
@@ -151,9 +188,6 @@ if (firstName.length > 32 || lastName.length > 32) {
             <div className="text-5xl mb-4">✅</div>
             <p className="text-xl font-medium text-green-800">
               You're checked in!
-            </p>
-            <p className="text-sm text-green-600 mt-2">
-              Your attendance has been recorded on-chain.
             </p>
           </div>
         )}

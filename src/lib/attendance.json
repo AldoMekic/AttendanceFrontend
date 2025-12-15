@@ -77,6 +77,144 @@
       ]
     },
     {
+      "name": "check_in_session",
+      "discriminator": [
+        196,
+        187,
+        119,
+        1,
+        151,
+        248,
+        223,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "student",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "class",
+          "writable": true
+        },
+        {
+          "name": "attendance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  110,
+                  100,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "class"
+              },
+              {
+                "kind": "account",
+                "path": "student"
+              },
+              {
+                "kind": "account",
+                "path": "class.current_session",
+                "account": "Class"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "session",
+          "type": "u32"
+        },
+        {
+          "name": "first_name",
+          "type": "string"
+        },
+        {
+          "name": "last_name",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "create_class",
+      "discriminator": [
+        34,
+        138,
+        228,
+        149,
+        66,
+        39,
+        106,
+        183
+      ],
+      "accounts": [
+        {
+          "name": "teacher",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "class",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  97,
+                  115,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "teacher"
+              },
+              {
+                "kind": "arg",
+                "path": "class_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "class_id",
+          "type": "string"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "create_event",
       "discriminator": [
         49,
@@ -139,6 +277,67 @@
           "type": "u32"
         }
       ]
+    },
+    {
+      "name": "end_session",
+      "discriminator": [
+        11,
+        244,
+        61,
+        154,
+        212,
+        249,
+        15,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "teacher",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "class"
+          ]
+        },
+        {
+          "name": "class",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "start_session",
+      "discriminator": [
+        23,
+        227,
+        111,
+        142,
+        212,
+        230,
+        3,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "teacher",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "class"
+          ]
+        },
+        {
+          "name": "class",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "duration_minutes",
+          "type": "u32"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -153,6 +352,32 @@
         204,
         118,
         63
+      ]
+    },
+    {
+      "name": "Class",
+      "discriminator": [
+        95,
+        167,
+        107,
+        136,
+        142,
+        38,
+        133,
+        232
+      ]
+    },
+    {
+      "name": "ClassAttendance",
+      "discriminator": [
+        56,
+        53,
+        245,
+        56,
+        38,
+        96,
+        240,
+        28
       ]
     },
     {
@@ -194,6 +419,31 @@
       "code": 6004,
       "name": "LastNameTooLong",
       "msg": "Last name must be 32 characters or less"
+    },
+    {
+      "code": 6005,
+      "name": "ClassIdTooLong",
+      "msg": "Class ID must be 16 characters or less"
+    },
+    {
+      "code": 6006,
+      "name": "SessionNotActive",
+      "msg": "Session is not active"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidSession",
+      "msg": "Invalid session"
+    },
+    {
+      "code": 6008,
+      "name": "SessionEnded",
+      "msg": "Session ended"
+    },
+    {
+      "code": 6009,
+      "name": "SessionStillActive",
+      "msg": "Session is still active (end it or wait for expiry)"
     }
   ],
   "types": [
@@ -209,6 +459,82 @@
           {
             "name": "attendee",
             "type": "pubkey"
+          },
+          {
+            "name": "first_name",
+            "type": "string"
+          },
+          {
+            "name": "last_name",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Class",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "teacher",
+            "type": "pubkey"
+          },
+          {
+            "name": "class_id",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "current_session",
+            "type": "u32"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "session_start",
+            "type": "i64"
+          },
+          {
+            "name": "session_end",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClassAttendance",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "class",
+            "type": "pubkey"
+          },
+          {
+            "name": "student",
+            "type": "pubkey"
+          },
+          {
+            "name": "session",
+            "type": "u32"
           },
           {
             "name": "first_name",

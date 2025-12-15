@@ -3,10 +3,8 @@ import { PublicKey } from "@solana/web3.js";
 import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { useMemo } from "react";
 
-// Import IDL - use require for JSON in Next.js
 const idl = require("./attendance.json");
 
-// IMPORTANT: Replace with YOUR program ID from `anchor keys list`
 export const PROGRAM_ID = new PublicKey("81UDr8A4MRvaxWmdPG72fFLMMxfDu634QmyykZj9JCp8");
 
 export function useProgram() {
@@ -36,6 +34,34 @@ export function getAttendancePDA(
 ): PublicKey {
     const [pda] = PublicKey.findProgramAddressSync(
         [Buffer.from("attendance"), event.toBuffer(), attendee.toBuffer()],
+        PROGRAM_ID
+    );
+    return pda;
+}
+
+export function getClassPDA(teacher: PublicKey, classId: string): PublicKey {
+    const [pda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("class"), teacher.toBuffer(), Buffer.from(classId)],
+        PROGRAM_ID
+    );
+    return pda;
+}
+
+export function getClassAttendancePDA(
+    classPda: PublicKey,
+    student: PublicKey,
+    session: number
+): PublicKey {
+    const sessionBuf = Buffer.alloc(4);
+    sessionBuf.writeUInt32LE(session, 0);
+
+    const [pda] = PublicKey.findProgramAddressSync(
+        [
+            Buffer.from("attendance"),
+            classPda.toBuffer(),
+            student.toBuffer(),
+            sessionBuf,
+        ],
         PROGRAM_ID
     );
     return pda;
