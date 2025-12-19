@@ -9,3 +9,7 @@ Link to the Solana Anchor smart contract and blockchain logic:
 ## Demo Video
 YouTube walkthrough and live demonstration of the system:  
 **https://youtu.be/I86Yj9l-Nl0?si=DYYmrS47Vt6AOszQ**
+
+## Deployed website
+Vercel hosted frontend
+**https://attendance-19p42p9nl-aldomekics-projects.vercel.app/**
