@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { PublicKey } from "@solana/web3.js";
+import toast from "react-hot-toast";
+
 import { useProgram } from "@/lib/program";
 import { mintProofCnft } from "@/lib/cnft";
+import { getErrorMessage } from "@/lib/errors";
+import Link from "next/link";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -24,96 +28,81 @@ export default function StudentPageClient() {
   const [lastName, setLastName] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
+  const [checkInTime, setCheckInTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("studentInfo");
+      if (saved) {
+        const { firstName: fn, lastName: ln } = JSON.parse(saved);
+        if (fn) setFirstName(fn);
+        if (ln) setLastName(ln);
+      }
+    } catch {}
+  }, []);
 
   const handleCheckIn = async () => {
     if (!program || !publicKey) return;
 
-    setStatus("loading");
-    setError("");
+    const first = firstName.trim();
+    const last = lastName.trim();
 
-    if (!firstName.trim() || !lastName.trim()) {
-      setStatus("error");
+    if (!first || !last) {
       setError("Please enter your first and last name.");
+      setStatus("error");
       return;
     }
-
-    if (firstName.length > 32 || lastName.length > 32) {
+    if (first.length > 32 || last.length > 32) {
+      setError("Names must be 32 characters or less.");
       setStatus("error");
-      setError("First name and last name must be 32 characters or less.");
       return;
     }
 
     try {
+      localStorage.setItem("studentInfo", JSON.stringify({ firstName: first, lastName: last }));
+    } catch {}
+
+    setStatus("loading");
+    setError("");
+
+    const handleCheckInSuccess = (pda: PublicKey) => {
+      setCheckInTime(new Date());
+      setStatus("success");
+      toast.success("Checked in!");
+
+      // Mint cnft proof in background (non-blocking)
+      mintProofCnft({ wallet, leafOwner: publicKey, classOrEventPda: pda }).catch(console.warn);
+    };
+
+    try {
       if (eventParam) {
         const eventPDA = new PublicKey(eventParam);
-
         await program.methods
-          .checkIn(firstName.trim(), lastName.trim())
-          .accounts({
-            attendee: publicKey,
-            event: eventPDA,
-          })
+          .checkIn(first, last)
+          .accounts({ attendee: publicKey, event: eventPDA })
           .rpc();
-
-        setStatus("success");
-
-        try {
-          await mintProofCnft({
-            wallet,
-            leafOwner: publicKey,
-            classOrEventPda: eventPDA,
-          });
-        } catch (e) {
-          console.warn("Mint failed, but check-in succeeded:", e);
-        }
-
+        handleCheckInSuccess(eventPDA);
         return;
       }
 
       if (classParam && sessionParam) {
         const classPDA = new PublicKey(classParam);
-        const session = Number(sessionParam);
-
         await (program as any).methods
-          .checkInSession(session, firstName.trim(), lastName.trim())
-          .accounts({
-            student: publicKey,
-            class: classPDA,
-          })
+          .checkInSession(Number(sessionParam), first, last)
+          .accounts({ student: publicKey, class: classPDA })
           .rpc();
-
-        setStatus("success");
-
-        try {
-          await mintProofCnft({
-            wallet,
-            leafOwner: publicKey,
-            classOrEventPda: classPDA,
-          });
-        } catch (e) {
-          console.warn("Mint failed, but check-in succeeded:", e);
-        }
-
+        handleCheckInSuccess(classPDA);
         return;
       }
 
       setStatus("error");
-      setError("Invalid check-in link. Missing event or class/session.");
-    } catch (e: any) {
-      console.error(e);
+      setError("Invalid link. Missing event or class.");
+      toast.error("Invalid link. Missing event or class.");
+    } catch (err) {
+      const errorMessage = getErrorMessage(err);
       setStatus("error");
-
-      const msg = e?.message ?? "";
-
-      if (msg.includes("already in use") || msg.includes("0x0")) {
-        setError("You've already checked in!");
-      } else if (msg.includes("EventEnded")) {
-        setError("This event or session has ended.");
-      } else if (msg.includes("insufficient")) {
-        setError("Insufficient SOL for transaction fees.");
-      } else {
-        setError("Check-in failed. Please try again.");
-      }
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -122,9 +111,7 @@ export default function StudentPageClient() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Student Check-In</h1>
-          <p className="text-gray-600">
-            Scan a QR code from your teacher to check in.
-          </p>
+          <p className="text-gray-600">Scan a QR code from your teacher.</p>
         </div>
       </div>
     );
@@ -141,11 +128,9 @@ export default function StudentPageClient() {
 
         {publicKey && status === "idle" && (
           <div className="space-y-4">
-            <div className="space-y-3 text-left">
+            <div className="text-left space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  First name
-                </label>
+                <label className="block text-sm font-medium mb-1">First name</label>
                 <input
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
@@ -153,11 +138,8 @@ export default function StudentPageClient() {
                   className="w-full p-3 border rounded"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Last name
-                </label>
+                <label className="block text-sm font-medium mb-1">Last name</label>
                 <input
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
@@ -169,7 +151,8 @@ export default function StudentPageClient() {
 
             <button
               onClick={handleCheckIn}
-              className="w-full p-4 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700"
+              disabled={!firstName.trim() || !lastName.trim()}
+              className="w-full p-4 bg-green-600 text-white rounded-lg text-lg font-medium hover:bg-green-700 disabled:bg-gray-400"
             >
               Check In Now
             </button>
@@ -179,16 +162,19 @@ export default function StudentPageClient() {
         {status === "loading" && (
           <div className="p-8 bg-gray-50 rounded-lg">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-gray-600">Recording your attendance...</p>
+            <p className="text-gray-600">Recording attendance...</p>
           </div>
         )}
 
         {status === "success" && (
           <div className="p-8 bg-green-50 rounded-lg">
             <div className="text-5xl mb-4">✅</div>
-            <p className="text-xl font-medium text-green-800">
-              You're checked in!
-            </p>
+            <p className="text-xl font-medium text-green-800">You're checked in!</p>
+            {checkInTime && (
+              <p className="text-green-600 text-sm">
+                {checkInTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
           </div>
         )}
 
@@ -208,9 +194,7 @@ export default function StudentPageClient() {
           </div>
         )}
 
-        {!publicKey && (
-          <p className="text-gray-500">Connect your wallet to check in</p>
-        )}
+        {!publicKey && <p className="text-gray-500">Connect your wallet to check in</p>}
       </div>
     </div>
   );

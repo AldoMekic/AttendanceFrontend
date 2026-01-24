@@ -1,15 +1,35 @@
-# Attendance Check-In on Solana
+# Solana Attendance
 
-This project implements a blockchain-based attendance system using Solana, where teachers create events or recurring class sessions and students check in by scanning a QR code and connecting their wallet. The system is designed to be simple, trustless, and tamper-resistant, demonstrating a practical use of Web3 for real-world academic attendance tracking and possible wider usage across global industries.
+Blockchain-powered attendance tracking with optional compressed NFT proof-of-attendance.
 
-## Related Repository
-Link to the Solana Anchor smart contract and blockchain logic:   
-**https://github.com/AldoMekic/AttendanceBlockchain**
+## Overview
+A decentralized attendance system built on Solana that enables teachers to create events/classes and students to check in via QR code. Each check-in is recorded on-chain and optionally mints a compressed NFT as proof of attendance.
 
-## Demo Video
-YouTube walkthrough and live demonstration of the system:  
-**https://youtu.be/I86Yj9l-Nl0?si=DYYmrS47Vt6AOszQ**
+## Features
+- QR Check-in (event + class session mode)
+- On-chain records (immutable attendance)
+- Optional proof NFTs (compressed NFT)
+- Real-time attendee updates
+- CSV export for teachers
+- Student attendance history + streak counter
+- Mobile-friendly UI
 
-## Deployed website
-Vercel hosted frontend
-**https://attendance-19p42p9nl-aldomekics-projects.vercel.app/**
+## Tech Stack
+**Frontend:** Next.js, React, Tailwind, TypeScript  
+**Blockchain:** Solana, Anchor  
+**NFT:** Metaplex Bubblegum (compressed NFTs)
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- Rust + Cargo
+- Solana CLI
+- Anchor CLI
+- Wallet: Phantom / Solflare
+
+### Frontend
+```bash
+cd AttendanceFrontend
+npm install
+npm run dev
